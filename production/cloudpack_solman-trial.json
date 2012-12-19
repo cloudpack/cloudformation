@@ -1,6 +1,6 @@
 {
     "AWSTemplateFormatVersion": "2010-09-09", 
-    "Description": "SUZ-LAB Formation SolMan Trial 0.0.3", 
+    "Description": "cloudpack Formation SolMan Trial", 
     "Mappings": {
         "AvailabilityZoneMap": {
             "ap-northeast-1": {
