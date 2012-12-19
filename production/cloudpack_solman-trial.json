@@ -1,0 +1,254 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09", 
+    "Description": "SUZ-LAB Formation SolMan Trial 0.0.3", 
+    "Mappings": {
+        "AvailabilityZoneMap": {
+            "ap-northeast-1": {
+                "AZA": "ap-northeast-1a", 
+                "AZB": "ap-northeast-1b", 
+                "AZC": "ap-northeast-1c"
+            }
+        }
+    }, 
+    "Parameters": {
+        "KeyName": {
+            "Default": "", 
+            "Description": "Key Name", 
+            "Type": "String"
+        },
+        "VPCRange": {
+            "Default": "192.168.0.0/16",
+            "Description": "Define VPC Subnet(Format:x.x.x.x/x)",
+            "Type": "String"
+        },
+        "VPCSubnet1": {
+            "Default": "192.168.0.0/24",
+            "Description": "Define VPC Subnet deplyed SolMan and ERP(Format:x.x.x.x/x)",
+            "Type": "String"
+        },
+        "SolManIP": {
+            "Default": "192.168.0.11",
+            "Description": "Define Solution Manager IP address(Format:x.x.x.x)",
+            "Type": "String"
+        },
+        "ERPIP": {
+            "Default": "192.168.0.12",
+            "Description": "Define ERP IP address(Format:x.x.x.x)",
+            "Type": "String"
+        }
+    }, 
+    "Resources": {
+	"EC2VPCSolManTrial": {
+            "Properties": {
+                "CidrBlock": { "Ref": "VPCRange" }
+            }, 
+            "Type": "AWS::EC2::VPC"
+        },
+        "EC2InternetGateway": {
+            "Properties": {}, 
+            "Type": "AWS::EC2::InternetGateway"
+        },
+	"EC2VPCGatewayAttachmentInternet": {
+            "Properties": {
+                "InternetGatewayId": { "Ref": "EC2InternetGateway" }, 
+                "VpcId": { "Ref": "EC2VPCSolManTrial" }
+            }, 
+            "Type": "AWS::EC2::VPCGatewayAttachment"
+        },
+	"EC2NetworkAclExternal": {
+            "Properties": {
+                "VpcId": { "Ref": "EC2VPCSolManTrial" }
+            }, 
+            "Type": "AWS::EC2::NetworkAcl"
+        }, 
+        "EC2NetworkAclEntryExternalInbound": {
+            "Properties": {
+                "CidrBlock": "0.0.0.0/0", 
+                "Egress": "false", 
+                "NetworkAclId": { "Ref": "EC2NetworkAclExternal" }, 
+                "Protocol": "-1", 
+                "RuleAction": "allow", 
+                "RuleNumber": "100"
+            }, 
+            "Type": "AWS::EC2::NetworkAclEntry"
+        }, 
+        "EC2NetworkAclEntryExternalOutbound": {
+            "Properties": {
+                "CidrBlock": "0.0.0.0/0", 
+                "Egress": "true", 
+                "NetworkAclId": { "Ref": "EC2NetworkAclExternal" }, 
+                "Protocol": "-1", 
+                "RuleAction": "allow", 
+                "RuleNumber": "100"
+            }, 
+            "Type": "AWS::EC2::NetworkAclEntry"
+        }, 
+	"EC2RouteTablePublic": {
+            "Properties": {
+                "VpcId": { "Ref": "EC2VPCSolManTrial" }
+            }, 
+            "Type": "AWS::EC2::RouteTable"
+        },
+	"EC2RoutePublic": {
+            "Properties": {
+                "DestinationCidrBlock": "0.0.0.0/0", 
+                "GatewayId": { "Ref": "EC2InternetGateway" }, 
+                "RouteTableId": { "Ref": "EC2RouteTablePublic" }
+            }, 
+            "Type": "AWS::EC2::Route"
+        },
+        "EC2SecurityGroupCommon": {
+            "Properties": {
+                "GroupDescription": "Enable Common Access", 
+                "VpcId": { "Ref": "EC2VPCSolManTrial" }
+            }, 
+            "Type": "AWS::EC2::SecurityGroup"
+        },
+	"EC2SecurityGroupIngressCommon": {
+            "Type": "AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": { "Ref": "EC2SecurityGroupCommon" },
+                "IpProtocol": "-1",
+                "FromPort": "-1",
+                "ToPort": "-1",
+                "SourceSecurityGroupId": { "Ref": "EC2SecurityGroupCommon" }
+            }
+        },
+	"EC2SecurityGroupEgressCommon": {
+            "Type": "AWS::EC2::SecurityGroupEgress",
+            "Properties": {
+                "GroupId": { "Ref": "EC2SecurityGroupCommon" },
+                "IpProtocol": "-1",
+                "FromPort": "-1",
+                "ToPort": "-1",
+                "DestinationSecurityGroupId": { "Ref": "EC2SecurityGroupCommon" }
+            }
+        },
+	"EC2SecurityGroupSAP": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "Enable SAP access",
+                "VpcId": { "Ref": "EC2VPCSolManTrial" },
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "3389",
+                        "ToPort": "3389",
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ]
+            }
+        },
+	"EC2SubnetPublicFixA08": {
+            "Properties": {
+                "AvailabilityZone": { "Fn::FindInMap": [ "AvailabilityZoneMap", { "Ref": "AWS::Region" }, "AZA" ] }, 
+                "CidrBlock": {
+                    "Ref": "VPCSubnet1"
+                },
+                "VpcId": {
+                    "Ref": "EC2VPCSolManTrial"
+                }
+            }, 
+            "Type": "AWS::EC2::Subnet"
+        }, 
+	"EC2SubnetNetworkAclAssociationPublicFixA08": {
+            "Properties": {
+                "NetworkAclId": {
+                    "Ref": "EC2NetworkAclExternal"
+                }, 
+                "SubnetId": {
+                    "Ref": "EC2SubnetPublicFixA08"
+                }
+            }, 
+            "Type": "AWS::EC2::SubnetNetworkAclAssociation"
+        },
+	"EC2SubnetRouteTableAssociationPublicFixA08": {
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "EC2RouteTablePublic"
+                }, 
+                "SubnetId": {
+                    "Ref": "EC2SubnetPublicFixA08"
+                }
+            }, 
+            "Type": "AWS::EC2::SubnetRouteTableAssociation"
+        },
+        "EC2InstanceSolMan": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "SecurityGroupIds": [
+                    { "Ref": "EC2SecurityGroupCommon" },
+		    { "Ref": "EC2SecurityGroupSAP" }
+                ],
+                "ImageId": "ami-ae3088af",
+                "KeyName": { "Ref": "KeyName" },
+                "SubnetId": { "Ref": "EC2SubnetPublicFixA08" },
+                "InstanceType": "m1.xlarge",
+                "PrivateIpAddress": { "Ref": "SolManIP" },
+                "Tags": [ { "Key": "Name", "Value": "SolMan" } ],
+                "UserData": { "Fn::Base64": { "Fn::Join": ["", [
+                    "#! /powershell/\n",
+                    "$exefile = \"C:\\scripts\\starting_sap.ps1\"\n",
+                    "$wc = New-Object System.Net.WebClient\n",
+                    "$wc.DownloadFile(\"https://s3-ap-northeast-1.amazonaws.com/ci-rtj01/starting_sap.ps1\", \"$exefile\")\n",
+                    "& \"$exefile\"\n"
+                    ]]
+                }}
+            }
+        },
+	"EC2EIPSolMan": {
+            "Type": "AWS::EC2::EIP",
+            "Properties": {
+                "InstanceId": { "Ref": "EC2InstanceSolMan" },
+                "Domain": "vpc"
+            }
+        },
+	"EC2InstanceERP": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "SecurityGroupIds": [
+                    { "Ref": "EC2SecurityGroupCommon" },
+		    { "Ref": "EC2SecurityGroupSAP" }
+                ],
+                "ImageId": "ami-b43088b5",
+                "KeyName": { "Ref": "KeyName" },
+                "SubnetId": { "Ref": "EC2SubnetPublicFixA08" },
+                "InstanceType": "m1.large",
+                "PrivateIpAddress": { "Ref": "ERPIP" },
+                "Tags": [ { "Key": "Name", "Value": "ERP" } ],
+                "UserData": { "Fn::Base64": { "Fn::Join": ["", [
+                    "#! /powershell/\n",
+                    "$exefile = \"C:\\scripts\\starting_sap.ps1\"\n",
+                    "$wc = New-Object System.Net.WebClient\n",
+                    "$wc.DownloadFile(\"https://s3-ap-northeast-1.amazonaws.com/ci-rtj01/starting_sap.ps1\", \"$exefile\")\n",
+                    "& \"$exefile\"\n"
+                    ]]
+                }}
+            }
+        },
+	"EC2EIPERP": {
+            "Type": "AWS::EC2::EIP",
+            "Properties": {
+                "InstanceId": { "Ref": "EC2InstanceERP" },
+                "Domain": "vpc"
+            }
+        }
+    },
+    "Outputs": {
+        "VPCCIDR": {
+            "Value": { "Ref": "VPCRange" }
+        },
+	"PublicIPSolMan": {
+            "Value": { "Ref": "EC2EIPSolMan" }
+        },
+        "PrivateIPSolMan": {
+            "Value": { "Ref": "SolManIP" }
+        },
+	"PublicIPERP": {
+            "Value": { "Ref": "EC2EIPERP" }
+        },
+	"PrivateIPERP": {
+            "Value": { "Ref": "ERPIP" }
+        }
+    }
+}
