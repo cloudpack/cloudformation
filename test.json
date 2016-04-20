@@ -120,6 +120,14 @@
         "LoadBalancerSecurityGroup": {
             "Properties": {
                 "GroupDescription": "LoadBalancer",
+                "SecurityGroupIngress": [
+                    {
+                        "CidrIp": "0.0.0.0/0",
+                        "FromPort": "80",
+                        "IpProtocol": "tcp",
+                        "ToPort": "80"
+                    }
+                ],
                 "Tags": [
                     {
                         "Key": "Name",
