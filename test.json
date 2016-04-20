@@ -26,9 +26,6 @@
             "Default": "cloudpack",
             "Type": "String"
         },
-        "LoadBalancerSecurityGroup": {
-            "Type": "String"
-        },
         "NatGatewayEipAllocationId": {
             "Type": "String"
         },
@@ -118,6 +115,34 @@
                 }
             },
             "Type": "AWS::CloudFormation::Stack"
+        },
+        "LoadBalancerSecurityGroup": {
+            "Properties": {
+                "GroupDescription": "LoadBalancer",
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": {
+                            "Fn::Join": [
+                                "-",
+                                [
+                                    {
+                                        "Ref": "ProjectName"
+                                    },
+                                    "load_balancer"
+                                ]
+                            ]
+                        }
+                    }
+                ],
+                "VpcId": {
+                    "Fn::GetAtt": [
+                        "VpcStack",
+                        "Outputs.Vpc"
+                    ]
+                }
+            },
+            "Type": "AWS::EC2::SecurityGroup"
         },
         "VpcStack": {
             "Properties": {
