@@ -1,13 +1,13 @@
-aws cloudformation create-stacka \
+aws cloudformation create-stack \
 --capabilities CAPABILITY_IAM \
---stack-name SuzlabEnv \
---template-body file://./env.json \
+--stack-name CloudpackEnv \
+--template-body file://./env.json
 
 aws cloudformation create-stack \
 --capabilities CAPABILITY_IAM \
---stack-name SuzlabVpc \
---template-body file://./vpc.json \
---parameters '[{"ParameterKey":"NatGatewayEipAllocationId"},{"ParameterValue":"eipalloc-380aa45d"}]'
+--stack-name CloudpackTest \
+--template-body file://./test.json \
+--parameters '[{"ParameterKey":"NatGatewayEipAllocationId","ParameterValue":"eipalloc-xxxxxxxx"},{"ParameterKey":"CommonEc2Role","ParameterValue":"CloudpackEnv-CommonEc2Role-XXXXXXXXXXXXX"}]'
 
 aws cloudformation create-stack \
 --capabilities CAPABILITY_IAM \

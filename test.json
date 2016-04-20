@@ -1,0 +1,221 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Mappings": {
+        "RegionMapping": {
+            "ap-northeast-1": {
+                "ImageId": "ami-f80e0596"
+            },
+            "ap-southeast-1": {
+                "ImageId": "ami-e90dc68a"
+            }
+        }
+    },
+    "Parameters": {
+        "CommonEc2Role": {
+            "Type": "String"
+        },
+        "InstanceType": {
+            "Default": "t2.nano",
+            "Type": "String"
+        },
+        "KeyName": {
+            "Default": "cloudpack",
+            "Type": "String"
+        },
+        "NatGatewayEipAllocationId": {
+            "Type": "String"
+        },
+        "ProjectName": {
+            "Default": "cloudpack",
+            "Type": "String"
+        },
+        "TemplateBase": {
+            "Default": "service-catalog.cloudpack.jp/0.0.0",
+            "Type": "String"
+        }
+    },
+    "Resources": {
+        "AutoScalingGroup": {
+            "Properties": {
+                "Cooldown": "0",
+                "DesiredCapacity": "2",
+                "LaunchConfigurationName": {
+                    "Ref": "LaunchConfiguration"
+                },
+                "LoadBalancerNames": [
+                    {
+                        "Ref": "LoadBalancer"
+                    }
+                ],
+                "MaxSize": "2",
+                "MinSize": "2",
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "PropagateAtLaunch": "true",
+                        "Value": {
+                            "Fn::Join": [
+                                "-",
+                                [
+                                    {
+                                        "Ref": "ProjectName"
+                                    },
+                                    "web"
+                                ]
+                            ]
+                        }
+                    }
+                ],
+                "VPCZoneIdentifier": [
+                    {
+                        "Fn::GetAtt": [
+                            "VpcStack",
+                            "Outputs.Private1Subnet"
+                        ]
+                    },
+                    {
+                        "Fn::GetAtt": [
+                            "VpcStack",
+                            "Outputs.Private2Subnet"
+                        ]
+                    }
+                ]
+            },
+            "Type": "AWS::AutoScaling::AutoScalingGroup",
+            "UpdatePolicy": {
+                "AutoScalingRollingUpdate": {
+                    "MaxBatchSize": "1",
+                    "MinInstancesInService": "2"
+                }
+            }
+        },
+        "InstanceProfile": {
+            "Properties": {
+                "Path": "/",
+                "Roles": [
+                    {
+                        "Ref": "CommonEc2Role"
+                    }
+                ]
+            },
+            "Type": "AWS::IAM::InstanceProfile"
+        },
+        "LaunchConfiguration": {
+            "Properties": {
+                "IamInstanceProfile": {
+                    "Ref": "InstanceProfile"
+                },
+                "ImageId": {
+                    "Fn::FindInMap": [
+                        "RegionMapping",
+                        {
+                            "Ref": "AWS::Region"
+                        },
+                        "ImageId"
+                    ]
+                },
+                "InstanceType": {
+                    "Ref": "InstanceType"
+                },
+                "KeyName": {
+                    "Ref": "KeyName"
+                },
+                "SecurityGroups": [
+                    {
+                        "Fn::GetAtt": [
+                            "VpcStack",
+                            "Outputs.CommonSecurityGroup"
+                        ]
+                    }
+                ]
+            },
+            "Type": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "LoadBalancer": {
+            "Properties": {
+                "CrossZone": "true",
+                "HealthCheck": {
+                    "HealthyThreshold": "2",
+                    "Interval": "5",
+                    "Target": "TCP:80",
+                    "Timeout": "2",
+                    "UnhealthyThreshold": "2"
+                },
+                "Listeners": [
+                    {
+                        "InstancePort": "80",
+                        "LoadBalancerPort": "80",
+                        "Protocol": "HTTP"
+                    }
+                ],
+                "SecurityGroups": [
+                    {
+                        "Fn::GetAtt": [
+                            "VpcStack",
+                            "Outputs.CommonSecurityGroup"
+                        ]
+                    }
+                ],
+                "Subnets": [
+                    {
+                        "Fn::GetAtt": [
+                            "VpcStack",
+                            "Outputs.Public1Subnet"
+                        ]
+                    },
+                    {
+                        "Fn::GetAtt": [
+                            "VpcStack",
+                            "Outputs.Public2Subnet"
+                        ]
+                    }
+                ],
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": {
+                            "Ref": "ProjectName"
+                        }
+                    }
+                ]
+            },
+            "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
+        },
+        "VpcStack": {
+            "Properties": {
+                "Parameters": {
+                    "NatGatewayEipAllocationId": {
+                        "Ref": "NatGatewayEipAllocationId"
+                    },
+                    "ProjectName": {
+                        "Ref": "ProjectName"
+                    },
+                    "TemplateBase": {
+                        "Ref": "TemplateBase"
+                    }
+                },
+                "TemplateURL": {
+                    "Fn::Join": [
+                        "",
+                        [
+                            "https://s3-",
+                            {
+                                "Ref": "AWS::Region"
+                            },
+                            ".amazonaws.com/",
+                            {
+                                "Ref": "AWS::Region"
+                            },
+                            ".",
+                            {
+                                "Ref": "TemplateBase"
+                            },
+                            "/vpc/vpc-nat_gateway.json"
+                        ]
+                    ]
+                }
+            },
+            "Type": "AWS::CloudFormation::Stack"
+        }
+    }
+}

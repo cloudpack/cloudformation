@@ -83,7 +83,7 @@
             "Type": "String"
         },
         "TemplateBase": {
-            "Default": "service-catalog.suz-lab.com/0.0.0",
+            "Default": "service-catalog.cloudpack.jp/0.0.0",
             "Type": "String"
         },
         "VpcCidrBlock": {
