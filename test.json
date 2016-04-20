@@ -11,10 +11,6 @@
         }
     },
     "Parameters": {
-        "AnsibleFunctionName": {
-            "Default": "web-php",
-            "Type": "String"
-        },
         "AnsibleProjectRepository": {
             "Default": "https://github.com/cloudpack/ansible.git",
             "Type": "String"
@@ -26,12 +22,11 @@
         "CommonEc2Role": {
             "Type": "String"
         },
-        "InstanceType": {
-            "Default": "t2.nano",
-            "Type": "String"
-        },
         "KeyName": {
             "Default": "cloudpack",
+            "Type": "String"
+        },
+        "LoadBalancerSecurityGroup": {
             "Type": "String"
         },
         "NatGatewayEipAllocationId": {
@@ -47,205 +42,82 @@
         }
     },
     "Resources": {
-        "AutoScalingGroup": {
+        "Ec2Stack": {
             "Properties": {
-                "Cooldown": "0",
-                "DesiredCapacity": "2",
-                "LaunchConfigurationName": {
-                    "Ref": "LaunchConfiguration"
-                },
-                "LoadBalancerNames": [
-                    {
-                        "Ref": "LoadBalancer"
-                    }
-                ],
-                "MaxSize": "3",
-                "MinSize": "2",
-                "Tags": [
-                    {
-                        "Key": "Name",
-                        "PropagateAtLaunch": "true",
-                        "Value": {
-                            "Fn::Join": [
-                                "-",
-                                [
-                                    {
-                                        "Ref": "ProjectName"
-                                    },
-                                    {
-                                        "Ref": "AnsibleFunctionName"
-                                    }
-                                ]
-                            ]
-                        }
-                    }
-                ],
-                "VPCZoneIdentifier": [
-                    {
+                "Parameters": {
+                    "AnsibleFunctionName": "web-php",
+                    "AnsibleProjectRepository": {
+                        "Ref": "AnsibleProjectRepository"
+                    },
+                    "AnsibleProjectVersion": {
+                        "Ref": "AnsibleProjectVersion"
+                    },
+                    "CommonEc2Role": {
+                        "Ref": "CommonEc2Role"
+                    },
+                    "CommonSecurityGroup": {
+                        "Fn::GetAtt": [
+                            "VpcStack",
+                            "Outputs.CommonSecurityGroup"
+                        ]
+                    },
+                    "InstanceType": "t2.nano",
+                    "KeyName": {
+                        "Ref": "KeyName"
+                    },
+                    "LoadBalancerSecurityGroup": {
+                        "Ref": "LoadBalancerSecurityGroup"
+                    },
+                    "Private1Subnet": {
                         "Fn::GetAtt": [
                             "VpcStack",
                             "Outputs.Private1Subnet"
                         ]
                     },
-                    {
+                    "Private2Subnet": {
                         "Fn::GetAtt": [
                             "VpcStack",
                             "Outputs.Private2Subnet"
                         ]
-                    }
-                ]
-            },
-            "Type": "AWS::AutoScaling::AutoScalingGroup",
-            "UpdatePolicy": {
-                "AutoScalingRollingUpdate": {
-                    "MaxBatchSize": "1",
-                    "MinInstancesInService": "2"
-                }
-            }
-        },
-        "InstanceProfile": {
-            "Properties": {
-                "Path": "/",
-                "Roles": [
-                    {
-                        "Ref": "CommonEc2Role"
-                    }
-                ]
-            },
-            "Type": "AWS::IAM::InstanceProfile"
-        },
-        "LaunchConfiguration": {
-            "Properties": {
-                "IamInstanceProfile": {
-                    "Ref": "InstanceProfile"
-                },
-                "ImageId": {
-                    "Fn::FindInMap": [
-                        "RegionMapping",
-                        {
-                            "Ref": "AWS::Region"
-                        },
-                        "ImageId"
-                    ]
-                },
-                "InstanceType": {
-                    "Ref": "InstanceType"
-                },
-                "KeyName": {
-                    "Ref": "KeyName"
-                },
-                "SecurityGroups": [
-                    {
-                        "Fn::GetAtt": [
-                            "VpcStack",
-                            "Outputs.CommonSecurityGroup"
-                        ]
-                    }
-                ],
-                "UserData": {
-                    "Fn::Base64": {
-                        "Fn::Join": [
-                            "\n",
-                            [
-                                "#!/bin/sh",
-                                "yum -y update",
-                                "yum -y install git",
-                                "pip install --upgrade pip",
-                                "/usr/local/bin/pip install ansible",
-                                {
-                                    "Fn::Join": [
-                                        " ",
-                                        [
-                                            "git clone --depth=1 -b",
-                                            {
-                                                "Ref": "AnsibleProjectVersion"
-                                            },
-                                            {
-                                                "Ref": "AnsibleProjectRepository"
-                                            },
-                                            "/root/ansible"
-                                        ]
-                                    ]
-                                },
-                                {
-                                    "Fn::Join": [
-                                        "",
-                                        [
-                                            "export AWS_DEFAULT_REGION=",
-                                            {
-                                                "Ref": "AWS::Region"
-                                            }
-                                        ]
-                                    ]
-                                },
-                                {
-                                    "Fn::Join": [
-                                        "",
-                                        [
-                                            "/usr/local/bin/ansible-playbook /root/ansible/",
-                                            {
-                                                "Ref": "AnsibleFunctionName"
-                                            },
-                                            ".yml"
-                                        ]
-                                    ]
-                                }
-                            ]
-                        ]
-                    }
-                }
-            },
-            "Type": "AWS::AutoScaling::LaunchConfiguration"
-        },
-        "LoadBalancer": {
-            "Properties": {
-                "CrossZone": "true",
-                "HealthCheck": {
-                    "HealthyThreshold": "2",
-                    "Interval": "5",
-                    "Target": "TCP:80",
-                    "Timeout": "2",
-                    "UnhealthyThreshold": "2"
-                },
-                "Listeners": [
-                    {
-                        "InstancePort": "80",
-                        "LoadBalancerPort": "80",
-                        "Protocol": "HTTP"
-                    }
-                ],
-                "SecurityGroups": [
-                    {
-                        "Fn::GetAtt": [
-                            "VpcStack",
-                            "Outputs.CommonSecurityGroup"
-                        ]
-                    }
-                ],
-                "Subnets": [
-                    {
+                    },
+                    "ProjectName": {
+                        "Ref": "ProjectName"
+                    },
+                    "Public1Subnet": {
                         "Fn::GetAtt": [
                             "VpcStack",
                             "Outputs.Public1Subnet"
                         ]
                     },
-                    {
+                    "Public2Subnet": {
                         "Fn::GetAtt": [
                             "VpcStack",
                             "Outputs.Public2Subnet"
                         ]
                     }
-                ],
-                "Tags": [
-                    {
-                        "Key": "Name",
-                        "Value": {
-                            "Ref": "ProjectName"
-                        }
-                    }
-                ]
+                },
+                "TemplateURL": {
+                    "Fn::Join": [
+                        "",
+                        [
+                            "https://s3-",
+                            {
+                                "Ref": "AWS::Region"
+                            },
+                            ".amazonaws.com/",
+                            {
+                                "Ref": "AWS::Region"
+                            },
+                            ".",
+                            {
+                                "Ref": "TemplateBase"
+                            },
+                            "/ec2/ec2-web.json"
+                        ]
+                    ]
+                }
             },
-            "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
+            "Type": "AWS::CloudFormation::Stack"
         },
         "VpcStack": {
             "Properties": {

@@ -1,0 +1,257 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Mappings": {
+        "RegionMapping": {
+            "ap-northeast-1": {
+                "ImageId": "ami-f80e0596"
+            },
+            "ap-southeast-1": {
+                "ImageId": "ami-e90dc68a"
+            }
+        }
+    },
+    "Parameters": {
+        "AnsibleFunctionName": {
+            "Default": "web",
+            "Type": "String"
+        },
+        "AnsibleProjectRepository": {
+            "Default": "https://github.com/cloudpack/ansible.git",
+            "Type": "String"
+        },
+        "AnsibleProjectVersion": {
+            "Default": "v0.0.0",
+            "Type": "String"
+        },
+        "CommonEc2Role": {
+            "Type": "String"
+        },
+        "CommonSecurityGroup": {
+            "Type": "String"
+        },
+        "InstanceType": {
+            "Default": "t2.nano",
+            "Type": "String"
+        },
+        "KeyName": {
+            "Default": "cloudpack",
+            "Type": "String"
+        },
+        "LoadBalancerSecurityGroup": {
+            "Type": "String"
+        },
+        "Private1Subnet": {
+            "Type": "String"
+        },
+        "Private2Subnet": {
+            "Type": "String"
+        },
+        "ProjectName": {
+            "Default": "cloudpack",
+            "Type": "String"
+        },
+        "Public1Subnet": {
+            "Type": "String"
+        },
+        "Public2Subnet": {
+            "Type": "String"
+        }
+    },
+    "Resources": {
+        "AutoScalingGroup": {
+            "Properties": {
+                "Cooldown": "0",
+                "DesiredCapacity": "2",
+                "LaunchConfigurationName": {
+                    "Ref": "LaunchConfiguration"
+                },
+                "LoadBalancerNames": [
+                    {
+                        "Ref": "LoadBalancer"
+                    }
+                ],
+                "MaxSize": "3",
+                "MinSize": "2",
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "PropagateAtLaunch": "true",
+                        "Value": {
+                            "Fn::Join": [
+                                "-",
+                                [
+                                    {
+                                        "Ref": "ProjectName"
+                                    },
+                                    {
+                                        "Ref": "AnsibleFunctionName"
+                                    }
+                                ]
+                            ]
+                        }
+                    }
+                ],
+                "VPCZoneIdentifier": [
+                    {
+                        "Ref": "Private1Subnet"
+                    },
+                    {
+                        "Ref": "Private2Subnet"
+                    }
+                ]
+            },
+            "Type": "AWS::AutoScaling::AutoScalingGroup",
+            "UpdatePolicy": {
+                "AutoScalingRollingUpdate": {
+                    "MaxBatchSize": "1",
+                    "MinInstancesInService": "2"
+                }
+            }
+        },
+        "InstanceProfile": {
+            "Properties": {
+                "Path": "/",
+                "Roles": [
+                    {
+                        "Ref": "CommonEc2Role"
+                    }
+                ]
+            },
+            "Type": "AWS::IAM::InstanceProfile"
+        },
+        "LaunchConfiguration": {
+            "Properties": {
+                "IamInstanceProfile": {
+                    "Ref": "InstanceProfile"
+                },
+                "ImageId": {
+                    "Fn::FindInMap": [
+                        "RegionMapping",
+                        {
+                            "Ref": "AWS::Region"
+                        },
+                        "ImageId"
+                    ]
+                },
+                "InstanceType": {
+                    "Ref": "InstanceType"
+                },
+                "KeyName": {
+                    "Ref": "KeyName"
+                },
+                "SecurityGroups": [
+                    {
+                        "Ref": "CommonSecurityGroup"
+                    }
+                ],
+                "UserData": {
+                    "Fn::Base64": {
+                        "Fn::Join": [
+                            "\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\n",
+                            [
+                                "#!/bin/sh",
+                                "yum -y update",
+                                "yum -y install git",
+                                "pip install --upgrade pip",
+                                "/usr/local/bin/pip install ansible",
+                                {
+                                    "Fn::Join": [
+                                        " ",
+                                        [
+                                            "git clone --depth=1 -b",
+                                            {
+                                                "Ref": "AnsibleProjectVersion"
+                                            },
+                                            {
+                                                "Ref": "AnsibleProjectRepository"
+                                            },
+                                            "/root/ansible"
+                                        ]
+                                    ]
+                                },
+                                {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            "export AWS_DEFAULT_REGION=",
+                                            {
+                                                "Ref": "AWS::Region"
+                                            }
+                                        ]
+                                    ]
+                                },
+                                {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            "/usr/local/bin/ansible-playbook /root/ansible/",
+                                            {
+                                                "Ref": "AnsibleFunctionName"
+                                            },
+                                            ".yml"
+                                        ]
+                                    ]
+                                }
+                            ]
+                        ]
+                    }
+                }
+            },
+            "Type": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "LoadBalancer": {
+            "Properties": {
+                "CrossZone": "true",
+                "HealthCheck": {
+                    "HealthyThreshold": "2",
+                    "Interval": "5",
+                    "Target": "TCP:80",
+                    "Timeout": "2",
+                    "UnhealthyThreshold": "2"
+                },
+                "Listeners": [
+                    {
+                        "InstancePort": "80",
+                        "LoadBalancerPort": "80",
+                        "Protocol": "HTTP"
+                    }
+                ],
+                "SecurityGroups": [
+                    {
+                        "Ref": "LoadBalancerSecurityGroup"
+                    },
+                    {
+                        "Ref": "CommonSecurityGroup"
+                    }
+                ],
+                "Subnets": [
+                    {
+                        "Ref": "Public1Subnet"
+                    },
+                    {
+                        "Ref": "Public2Subnet"
+                    }
+                ],
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": {
+                            "Fn::Join": [
+                                "-",
+                                [
+                                    {
+                                        "Ref": "ProjectName"
+                                    },
+                                    {
+                                        "Ref": "AnsibleFunctionName"
+                                    }
+                                ]
+                            ]
+                        }
+                    }
+                ]
+            },
+            "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
+        }
+    }
+}
