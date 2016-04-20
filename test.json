@@ -11,6 +11,18 @@
         }
     },
     "Parameters": {
+        "AnsibleFunctionName": {
+            "Default": "web-php",
+            "Type": "String"
+        },
+        "AnsibleProjectRepository": {
+            "Default": "https://github.com/cloudpack/ansible.git",
+            "Type": "String"
+        },
+        "AnsibleProjectVersion": {
+            "Default": "v0.0.0",
+            "Type": "String"
+        },
         "CommonEc2Role": {
             "Type": "String"
         },
@@ -47,7 +59,7 @@
                         "Ref": "LoadBalancer"
                     }
                 ],
-                "MaxSize": "2",
+                "MaxSize": "3",
                 "MinSize": "2",
                 "Tags": [
                     {
@@ -60,7 +72,9 @@
                                     {
                                         "Ref": "ProjectName"
                                     },
-                                    "web"
+                                    {
+                                        "Ref": "AnsibleFunctionName"
+                                    }
                                 ]
                             ]
                         }
@@ -127,7 +141,59 @@
                             "Outputs.CommonSecurityGroup"
                         ]
                     }
-                ]
+                ],
+                "UserData": {
+                    "Fn::Base64": {
+                        "Fn::Join": [
+                            "\n",
+                            [
+                                "#!/bin/sh",
+                                "yum -y update",
+                                "yum -y install git",
+                                "pip install --upgrade pip",
+                                "/usr/local/bin/pip install ansible",
+                                {
+                                    "Fn::Join": [
+                                        " ",
+                                        [
+                                            "git clone --depth=1 -b",
+                                            {
+                                                "Ref": "AnsibleProjectVersion"
+                                            },
+                                            {
+                                                "Ref": "AnsibleProjectRepository"
+                                            },
+                                            "/root/ansible"
+                                        ]
+                                    ]
+                                },
+                                {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            "export AWS_DEFAULT_REGION=",
+                                            {
+                                                "Ref": "AWS::Region"
+                                            }
+                                        ]
+                                    ]
+                                },
+                                {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            "/usr/local/bin/ansible-playbook /root/ansible/",
+                                            {
+                                                "Ref": "AnsibleFunctionName"
+                                            },
+                                            ".yml"
+                                        ]
+                                    ]
+                                }
+                            ]
+                        ]
+                    }
+                }
             },
             "Type": "AWS::AutoScaling::LaunchConfiguration"
         },
