@@ -29,6 +29,10 @@
         "CommonSecurityGroup": {
             "Type": "String"
         },
+        "DesiredCapacity": {
+            "Default": "2",
+            "Type": "String"
+        },
         "InstanceType": {
             "Default": "t2.nano",
             "Type": "String"
@@ -61,7 +65,11 @@
         "AutoScalingGroup": {
             "Properties": {
                 "Cooldown": "0",
-                "DesiredCapacity": "2",
+                "DesiredCapacity": {
+                    "Ref": "DesiredCapacity"
+                },
+                "HealthCheckGracePeriod": 60,
+                "HealthCheckType": "ELB",
                 "LaunchConfigurationName": {
                     "Ref": "LaunchConfiguration"
                 },
@@ -70,7 +78,7 @@
                         "Ref": "LoadBalancer"
                     }
                 ],
-                "MaxSize": "3",
+                "MaxSize": "10",
                 "MinSize": "2",
                 "Tags": [
                     {

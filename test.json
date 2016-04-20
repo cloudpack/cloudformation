@@ -58,6 +58,7 @@
                             "Outputs.CommonSecurityGroup"
                         ]
                     },
+                    "DesiredCapacity": "2",
                     "InstanceType": "t2.nano",
                     "KeyName": {
                         "Ref": "KeyName"
