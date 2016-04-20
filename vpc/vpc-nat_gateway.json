@@ -1,0 +1,170 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Outputs": {
+        "CommonSecurityGroup": {
+            "Value": {
+                "Fn::GetAtt": [
+                    "VpcBaseStack",
+                    "Outputs.CommonSecurityGroup"
+                ]
+            }
+        },
+        "DbSubnetGroup": {
+            "Value": {
+                "Fn::GetAtt": [
+                    "VpcBaseStack",
+                    "Outputs.DbSubnetGroup"
+                ]
+            }
+        },
+        "Private1Subnet": {
+            "Value": {
+                "Fn::GetAtt": [
+                    "VpcBaseStack",
+                    "Outputs.Private1Subnet"
+                ]
+            }
+        },
+        "Private2Subnet": {
+            "Value": {
+                "Fn::GetAtt": [
+                    "VpcBaseStack",
+                    "Outputs.Private2Subnet"
+                ]
+            }
+        },
+        "Public1Subnet": {
+            "Value": {
+                "Fn::GetAtt": [
+                    "VpcBaseStack",
+                    "Outputs.Public1Subnet"
+                ]
+            }
+        },
+        "Public2Subnet": {
+            "Value": {
+                "Fn::GetAtt": [
+                    "VpcBaseStack",
+                    "Outputs.Public2Subnet"
+                ]
+            }
+        },
+        "Vpc": {
+            "Value": {
+                "Fn::GetAtt": [
+                    "VpcBaseStack",
+                    "Outputs.Vpc"
+                ]
+            }
+        }
+    },
+    "Parameters": {
+        "NatGatewayEipAllocationId": {
+            "Type": "String"
+        },
+        "Private1SubnetCidrBlock": {
+            "Default": "10.0.128.0/18",
+            "Type": "String"
+        },
+        "Private2SubnetCidrBlock": {
+            "Default": "10.0.192.0/18",
+            "Type": "String"
+        },
+        "ProjectName": {
+            "Default": "cloudpack",
+            "Type": "String"
+        },
+        "Public1SubnetCidrBlock": {
+            "Default": "10.0.0.0/18",
+            "Type": "String"
+        },
+        "Public2SubnetCidrBlock": {
+            "Default": "10.0.64.0/18",
+            "Type": "String"
+        },
+        "TemplateBase": {
+            "Default": "service-catalog.suz-lab.com/0.0.0",
+            "Type": "String"
+        },
+        "VpcCidrBlock": {
+            "Default": "10.0.0.0/16",
+            "Type": "String"
+        }
+    },
+    "Resources": {
+        "NatGateway": {
+            "Properties": {
+                "AllocationId": {
+                    "Ref": "NatGatewayEipAllocationId"
+                },
+                "SubnetId": {
+                    "Fn::GetAtt": [
+                        "VpcBaseStack",
+                        "Outputs.Public1Subnet"
+                    ]
+                }
+            },
+            "Type": "AWS::EC2::NatGateway"
+        },
+        "Route": {
+            "Properties": {
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "NatGatewayId": {
+                    "Ref": "NatGateway"
+                },
+                "RouteTableId": {
+                    "Fn::GetAtt": [
+                        "VpcBaseStack",
+                        "Outputs.PrivateRouteTable"
+                    ]
+                }
+            },
+            "Type": "AWS::EC2::Route"
+        },
+        "VpcBaseStack": {
+            "Properties": {
+                "Parameters": {
+                    "Private1SubnetCidrBlock": {
+                        "Ref": "Private1SubnetCidrBlock"
+                    },
+                    "Private2SubnetCidrBlock": {
+                        "Ref": "Private2SubnetCidrBlock"
+                    },
+                    "ProjectName": {
+                        "Ref": "ProjectName"
+                    },
+                    "Public1SubnetCidrBlock": {
+                        "Ref": "Public1SubnetCidrBlock"
+                    },
+                    "Public2SubnetCidrBlock": {
+                        "Ref": "Public2SubnetCidrBlock"
+                    },
+                    "VpcCidrBlock": {
+                        "Ref": "VpcCidrBlock"
+                    }
+                },
+                "TemplateURL": {
+                    "Fn::Join": [
+                        "",
+                        [
+                            "https://s3-",
+                            {
+                                "Ref": "AWS::Region"
+                            },
+                            ".amazonaws.com/",
+                            {
+                                "Ref": "AWS::Region"
+                            },
+                            ".",
+                            {
+                                "Ref": "TemplateBase"
+                            },
+                            "/vpc/vpc-base.json"
+                        ]
+                    ]
+                }
+            },
+            "Type": "AWS::CloudFormation::Stack"
+        }
+    }
+}

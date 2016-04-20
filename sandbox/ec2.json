@@ -1,0 +1,147 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Mappings": {
+        "RegionMapping": {
+            "ap-southeast-1": {
+                "ImageId": "ami-e90dc68a"
+            }
+        }
+    },
+    "Parameters": {
+        "AnsibleProjectRepository": {
+            "Default": "https://github.com/cloudpack/ansible.git",
+            "Type": "String"
+        },
+        "AnsibleProjectVersion": {
+            "Default": "v0.0.0",
+            "Type": "String"
+        },
+        "CommonEc2Role": {
+            "Type": "String"
+        },
+        "FunctionName": {
+            "Default": "dummy",
+            "Type": "String"
+        },
+        "InstanceType": {
+            "Default": "t2.nano",
+            "Type": "String"
+        },
+        "ProjectName": {
+            "Default": "cloudpack",
+            "Type": "String"
+        },
+        "Subnet": {
+            "Type": "String"
+        }
+    },
+    "Resources": {
+        "Instance": {
+            "Properties": {
+                "IamInstanceProfile": {
+                    "Ref": "InstanceProfile"
+                },
+                "ImageId": {
+                    "Fn::FindInMap": [
+                        "RegionMapping",
+                        {
+                            "Ref": "AWS::Region"
+                        },
+                        "ImageId"
+                    ]
+                },
+                "InstanceType": {
+                    "Ref": "InstanceType"
+                },
+                "SubnetId": {
+                    "Ref": "Subnet"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": {
+                            "Fn::Join": [
+                                "-",
+                                [
+                                    {
+                                        "Ref": "ProjectName"
+                                    },
+                                    {
+                                        "Ref": "FunctionName"
+                                    }
+                                ]
+                            ]
+                        }
+                    }
+                ],
+                "UserData": {
+                    "Fn::Base64": {
+                        "Fn::Join": [
+                            "\n",
+                            [
+                                "#!/bin/sh",
+<<<<<<< HEAD
+=======
+                                "yum -y update",
+                                "yum -y install git",
+                                "pip install --upgrade pip",
+                                "/usr/local/bin/pip install ansible",
+                                {
+                                    "Fn::Join": [
+                                        " ",
+                                        [
+                                            "git clone --depth=1 -b",
+                                            {
+                                                "Ref": "AnsibleProjectVersion"
+                                            },
+                                            {
+                                                "Ref": "AnsibleProjectRepository"
+                                            },
+                                            "/root/ansible"
+                                        ]
+                                    ]
+                                },
+                                {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            "export AWS_DEFAULT_REGION=",
+                                            {
+                                                "Ref": "AWS::Region"
+                                            }
+                                        ]
+                                    ]
+                                },
+>>>>>>> c1e61fc4d79b5cac4799a4a31d8afbda59ce658e
+                                {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            "/usr/local/bin/ansible-playbook /root/ansible/",
+                                            {
+                                                "Ref": "FunctionName"
+                                            },
+                                            ".yml"
+                                        ]
+                                    ]
+                                }
+                            ]
+                        ]
+                    }
+                }
+            },
+            "Type": "AWS::EC2::Instance"
+        },
+        "InstanceProfile": {
+            "Properties": {
+                "Path": "/",
+                "Roles": [
+                    {
+                        "Ref": "CommonEc2Role"
+                    }
+                ]
+            },
+            "Type": "AWS::IAM::InstanceProfile"
+        }
+    }
+}

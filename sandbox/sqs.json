@@ -1,0 +1,15 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Outputs": {
+        "Queue": {
+            "Value": {
+                "Ref": "Queue"
+            }
+        }
+    },
+    "Resources": {
+        "Queue": {
+            "Type": "AWS::SQS::Queue"
+        }
+    }
+}
