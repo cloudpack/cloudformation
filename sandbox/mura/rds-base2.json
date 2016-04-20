@@ -1,0 +1,68 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "My Sample EC2 Template",
+  "Parameters": {
+    "DBIdentifier": {
+      "Type": "String"
+    },
+    "DBInstanceType": {
+      "Type": "String"
+    },
+    "DBName": {
+      "Type": "String"
+    },
+    "DBPassword": {
+      "Type": "String"
+    },
+    "DBSize": {
+      "Type": "String"
+    },
+    "DBSubnetGroupName": {
+      "Type": "String"
+    },
+    "MasterUsername": {
+      "Type": "String"
+    },
+    "SecurityGroupDB": {
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "DbInstance": {
+      "DeletionPolicy": "Snapshot",
+      "Properties": {
+        "AllocatedStorage": {
+          "Ref": "DBSize"
+        },
+        "AllowMajorVersionUpgrade": "False",
+        "AutoMinorVersionUpgrade": "False",
+        "BackupRetentionPeriod": "2",
+        "DBInstanceClass": {
+          "Ref": "DBInstanceType"
+        },
+        "DBInstanceIdentifier": {
+          "Ref": "DBIdentifier"
+        },
+        "DBName": {
+          "Ref": "DBName"
+        },
+        "DBSubnetGroupName": {
+          "Ref": "DBSubnetGroupName"
+        },
+        "Engine": "MySQL",
+        "MasterUserPassword": {
+          "Ref": "DBPassword"
+        },
+        "MasterUsername": {
+          "Ref": "MasterUsername"
+        },
+        "VPCSecurityGroups": [
+          {
+            "Ref": "SecurityGroupDB"
+          }
+        ]
+      },
+      "Type": "AWS::RDS::DBInstance"
+    }
+  }
+}
