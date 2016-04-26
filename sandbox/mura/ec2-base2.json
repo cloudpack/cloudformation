@@ -1,0 +1,166 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "My Sample EC2 Template",
+  "Outputs": {
+    "WebServers": {
+      "Value": {
+        "Ref": "WebServers"
+      }
+    }
+  },
+  "Parameters": {
+    "EBSSize": {
+      "Type": "String"
+    },
+    "InstanceName": {
+      "Type": "String"
+    },
+    "InstanceType": {
+      "Type": "String"
+    },
+    "KeyName": {
+      "Type": "String"
+    },
+    "ProjectName": {
+      "Type": "String"
+    },
+    "Public1Subnet": {
+      "Type": "String"
+    },
+    "SecurityGroupCloudpack": {
+      "Type": "String"
+    },
+    "SecurityGroupOwner": {
+      "Type": "String"
+    },
+    "SecurityGroupWeb": {
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "WebServerEIP": {
+      "Properties": {
+        "Domain": "vpc",
+        "InstanceId": {
+          "Ref": "WebServers"
+        }
+      },
+      "Type": "AWS::EC2::EIP"
+    },
+    "WebServerIAMInstanceProfile": {
+      "Properties": {
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "WebServerIAMRole"
+          }
+        ]
+      },
+      "Type": "AWS::IAM::InstanceProfile"
+    },
+    "WebServerIAMRole": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "sts:AssumeRole"
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "ec2.amazonaws.com"
+                ]
+              }
+            }
+          ]
+        },
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM"
+        ],
+        "Path": "/"
+      },
+      "Type": "AWS::IAM::Role"
+    },
+    "WebServers": {
+      "Properties": {
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/sda1",
+            "Ebs": {
+              "VolumeSize": {
+                "Ref": "EBSSize"
+              }
+            }
+          }
+        ],
+        "IamInstanceProfile": {
+          "Ref": "WebServerIAMInstanceProfile"
+        },
+        "ImageId": "ami-eec1c380",
+        "InstanceType": {
+          "Ref": "InstanceType"
+        },
+        "KeyName": {
+          "Ref": "KeyName"
+        },
+        "SecurityGroupIds": [
+          {
+            "Ref": "SecurityGroupCloudpack"
+          },
+          {
+            "Ref": "SecurityGroupOwner"
+          },
+          {
+            "Ref": "SecurityGroupWeb"
+          }
+        ],
+        "SubnetId": {
+          "Ref": "Public1Subnet"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Ref": "InstanceName"
+            }
+          },
+          {
+            "Key": "Backup-Generation",
+            "Value": "2"
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/sh\n",
+                "yum update -y\n",
+                "yum install epel-release -y\n",
+                "yum install gcc python-devel python-crypto python-pip git -y\n",
+                "easy_install pip\n",
+                "pip install ansible\n",
+                "cd ~\n",
+                "git clone https://github.com/shogomuranushi/muranotemplate2.git\n",
+                "sleep 30\n",
+                "ansible-playbook muranotemplate2/ansible/main.yml\n",
+                "ansible-playbook muranotemplate2/ansible/nrpe.yml --extra-vars 'nagiosserver=,11.22.33.44'\n",
+                "cat \u003c\u003cEOF \u003e muranotemplate2/ansible/roles/apache/vars/main.yml\n",
+                "site:\n",
+                " - { domain: 'www.test1.com', owner: 'root' }\n",
+                " - { domain: 'www.test2.co.jp', owner: 'apache' }\n",
+                "EOF\n",
+                "ansible-playbook muranotemplate2/ansible/apache.yml\n",
+                "ansible-playbook muranotemplate2/ansible/vsftpd.yml --extra-vars 'eip=22.33.44.55'\n",
+                "ansible-playbook muranotemplate2/ansible/php.yml\n",
+                "ansible-playbook muranotemplate2/ansible/selenux-desable.yml\n"
+              ]
+            ]
+          }
+        }
+      },
+      "Type": "AWS::EC2::Instance"
+    }
+  }
+}

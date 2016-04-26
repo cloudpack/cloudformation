@@ -1,0 +1,572 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "My Sample EC2 Template",
+  "Metadata": {
+    "AWS::CloudFormation::Interface": {
+      "ParameterGroups": [
+        {
+          "Label": {
+            "default": "Project Configuration"
+          },
+          "Parameters": [
+            "ProjectName",
+            "TemplateVPCBase"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Network Configuration"
+          },
+          "Parameters": [
+            "VpcCidrBlock",
+            "Public1SubnetCidrBlock",
+            "Public2SubnetCidrBlock",
+            "Private1SubnetCidrBlock",
+            "Private2SubnetCidrBlock"
+          ]
+        },
+        {
+          "Label": {
+            "default": "EC2 Configuration"
+          },
+          "Parameters": [
+            "InstanceName",
+            "InstanceType",
+            "EBSSize",
+            "KeyName"
+          ]
+        },
+        {
+          "Label": {
+            "default": "RDS Configuration"
+          },
+          "Parameters": [
+            "DBIdentifier",
+            "DBInstanceType",
+            "DBSize",
+            "DBName",
+            "DBUser",
+            "DBPassword"
+          ]
+        }
+      ]
+    }
+  },
+  "Parameters": {
+    "DBIdentifier": {
+      "Default": "projectname-db01",
+      "Description": "DBServer RDS Name",
+      "Type": "String"
+    },
+    "DBInstanceType": {
+      "AllowedValues": [
+        "db.t2.micro",
+        "db.t2.small",
+        "db.t2.medium",
+        "db.t2.large",
+        "db.m4.large",
+        "db.m4.xlarge",
+        "db.m4.2xlarge",
+        "db.m4.4xlarge",
+        "db.m4.10xlarge",
+        "db.m3.medium",
+        "db.m3.large",
+        "db.m3.xlarge",
+        "db.m3.2xlarge",
+        "db.r3.large",
+        "db.r3.xlarge",
+        "db.r3.2xlarge",
+        "db.r3.4xlarge",
+        "db.r3.8xlarge"
+      ],
+      "Default": "db.t2.micro",
+      "Description": "DBServer RDS InstanceType",
+      "Type": "String"
+    },
+    "DBName": {
+      "Default": "db",
+      "Description": "DBServer RDS DB Name",
+      "Type": "String"
+    },
+    "DBPassword": {
+      "AllowedPattern": "[a-zA-Z0-9]*",
+      "Description": "The database admin account password",
+      "MaxLength": "41",
+      "MinLength": "1",
+      "NoEcho": "true",
+      "Type": "String"
+    },
+    "DBSize": {
+      "Default": "100",
+      "Description": "DBServer RDS Disk Size",
+      "Type": "String"
+    },
+    "DBUser": {
+      "Default": "dbuser",
+      "Description": "DBServer RDS User",
+      "Type": "String"
+    },
+    "EBSSize": {
+      "Default": "100",
+      "Description": "WebServer EC2 EBS Size",
+      "Type": "String"
+    },
+    "InstanceName": {
+      "Default": "projectname-web01",
+      "Description": "WebServer EC2 InstanceName",
+      "Type": "String"
+    },
+    "InstanceType": {
+      "AllowedValues": [
+        "t2.nano",
+        "t2.micro",
+        "t2.small",
+        "t2.medium",
+        "t2.large",
+        "m4.large",
+        "m4.xlarge",
+        "m4.2xlarge",
+        "m4.4xlarge",
+        "m4.10xlarge",
+        "m3.medium",
+        "m3.large",
+        "m3.xlarge",
+        "m3.2xlarge",
+        "c4.large",
+        "c4.xlarge",
+        "c4.2xlarge",
+        "c4.4xlarge",
+        "c4.8xlarge",
+        "g2.2xlarge",
+        "g8.2xlarge",
+        "r3.large",
+        "r3.xlarge",
+        "r3.2xlarge",
+        "r3.4xlarge",
+        "r3.8xlarge",
+        "d2.xlarge",
+        "d2.xlarge",
+        "d2.4xlarge",
+        "d2.8xlarge",
+        "i2.xlarge",
+        "i2.2xlarge",
+        "i2.4xlarge",
+        "i2.8xlarge",
+        "hi1.4xlarge",
+        "hs1.8xlarge",
+        "cr1.8xlarge",
+        "cc2.8xlarge",
+        "cg1.4xlarge"
+      ],
+      "ConstraintDescription": "Must be a valid EC2 instance type",
+      "Default": "t2.small",
+      "Description": "WebServer EC2 instance type",
+      "Type": "String"
+    },
+    "KeyName": {
+      "ConstraintDescription": "Can contain only ASCII characters.",
+      "Description": "Name of an existing EC2 KeyPair to enable SSH access to the instance",
+      "Type": "AWS::EC2::KeyPair::KeyName"
+    },
+    "Private1SubnetCidrBlock": {
+      "Default": "10.0.128.0/18",
+      "Type": "String"
+    },
+    "Private2SubnetCidrBlock": {
+      "Default": "10.0.192.0/18",
+      "Type": "String"
+    },
+    "ProjectName": {
+      "Default": "suzlab",
+      "Type": "String"
+    },
+    "Public1SubnetCidrBlock": {
+      "Default": "10.0.0.0/18",
+      "Type": "String"
+    },
+    "Public2SubnetCidrBlock": {
+      "Default": "10.0.64.0/18",
+      "Type": "String"
+    },
+    "TemplateVPCBase": {
+      "Default": "service-catalog.cloudpack.jp/0.0.0",
+      "Type": "String"
+    },
+    "VpcCidrBlock": {
+      "Default": "10.0.0.0/16",
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "EC2BaseStack": {
+      "Properties": {
+        "Parameters": {
+          "EBSSize": {
+            "Ref": "EBSSize"
+          },
+          "InstanceName": {
+            "Ref": "InstanceName"
+          },
+          "InstanceType": {
+            "Ref": "InstanceType"
+          },
+          "KeyName": {
+            "Ref": "KeyName"
+          },
+          "ProjectName": {
+            "Ref": "ProjectName"
+          },
+          "Public1Subnet": {
+            "Fn::GetAtt": [
+              "VpcBaseStack",
+              "Outputs.Public1Subnet"
+            ]
+          },
+          "SecurityGroupCloudpack": {
+            "Ref": "SecurityGroupCloudpack"
+          },
+          "SecurityGroupOwner": {
+            "Ref": "SecurityGroupOwner"
+          },
+          "SecurityGroupWeb": {
+            "Ref": "SecurityGroupWeb"
+          }
+        },
+        "TemplateURL": {
+          "Fn::Join": [
+            "",
+            [
+              "https://s3-",
+              {
+                "Ref": "AWS::Region"
+              },
+              ".amazonaws.com/",
+              {
+                "Ref": "AWS::Region"
+              },
+              ".",
+              {
+                "Ref": "TemplateVPCBase"
+              },
+              "/vpc/ec2-base2.json"
+            ]
+          ]
+        }
+      },
+      "Type": "AWS::CloudFormation::Stack"
+    },
+    "InternetELB": {
+      "Properties": {
+        "CrossZone": "true",
+        "HealthCheck": {
+          "HealthyThreshold": "2",
+          "Interval": "30",
+          "Target": "TCP:80",
+          "Timeout": "5",
+          "UnhealthyThreshold": "2"
+        },
+        "Instances": [
+          {
+            "Fn::GetAtt": [
+              "EC2BaseStack",
+              "Outputs.WebServers"
+            ]
+          }
+        ],
+        "Listeners": [
+          {
+            "InstancePort": "80",
+            "LoadBalancerPort": "80",
+            "Protocol": "HTTP"
+          }
+        ],
+        "Scheme": "internet-facing",
+        "SecurityGroups": [
+          {
+            "Ref": "SecurityGroupELB"
+          }
+        ],
+        "Subnets": [
+          {
+            "Fn::GetAtt": [
+              "VpcBaseStack",
+              "Outputs.Public1Subnet"
+            ]
+          },
+          {
+            "Fn::GetAtt": [
+              "VpcBaseStack",
+              "Outputs.Public2Subnet"
+            ]
+          }
+        ]
+      },
+      "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
+    },
+    "RDSBaseStack": {
+      "Properties": {
+        "Parameters": {
+          "DBIdentifier": {
+            "Ref": "DBIdentifier"
+          },
+          "DBInstanceType": {
+            "Ref": "DBInstanceType"
+          },
+          "DBName": {
+            "Ref": "DBName"
+          },
+          "DBPassword": {
+            "Ref": "DBPassword"
+          },
+          "DBSize": {
+            "Ref": "DBSize"
+          },
+          "DBSubnetGroupName": {
+            "Fn::GetAtt": [
+              "VpcBaseStack",
+              "Outputs.DbSubnetGroup"
+            ]
+          },
+          "MasterUsername": {
+            "Ref": "DBUser"
+          },
+          "SecurityGroupDB": {
+            "Ref": "SecurityGroupDB"
+          }
+        },
+        "TemplateURL": {
+          "Fn::Join": [
+            "",
+            [
+              "https://s3-",
+              {
+                "Ref": "AWS::Region"
+              },
+              ".amazonaws.com/",
+              {
+                "Ref": "AWS::Region"
+              },
+              ".",
+              {
+                "Ref": "TemplateVPCBase"
+              },
+              "/vpc/rds-base2.json"
+            ]
+          ]
+        }
+      },
+      "Type": "AWS::CloudFormation::Stack"
+    },
+    "SecurityGroupCloudpack": {
+      "Properties": {
+        "GroupDescription": "Security Group Administrator Maintenance \u0026 Monitering.",
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": "11.22.33.44/32",
+            "FromPort": "22",
+            "IpProtocol": "tcp",
+            "ToPort": "22"
+          },
+          {
+            "CidrIp": "11.22.33.44/32",
+            "FromPort": "22",
+            "IpProtocol": "tcp",
+            "ToPort": "22"
+          },
+          {
+            "CidrIp": "22.33.44.55/32",
+            "FromPort": "5666",
+            "IpProtocol": "tcp",
+            "ToPort": "5666"
+          },
+          {
+            "CidrIp": "22.33.44.55/32",
+            "FromPort": "-1",
+            "IpProtocol": "icmp",
+            "ToPort": "-1"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "SecurityGroupCloudpack"
+          }
+        ],
+        "VpcId": {
+          "Fn::GetAtt": [
+            "VpcBaseStack",
+            "Outputs.Vpc"
+          ]
+        }
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    },
+    "SecurityGroupDB": {
+      "Properties": {
+        "GroupDescription": "Security Group DB.",
+        "SecurityGroupIngress": [
+          {
+            "FromPort": "3306",
+            "IpProtocol": "tcp",
+            "SourceSecurityGroupId": {
+              "Ref": "SecurityGroupWeb"
+            },
+            "ToPort": "3306"
+          },
+          {
+            "FromPort": "1521",
+            "IpProtocol": "tcp",
+            "SourceSecurityGroupId": {
+              "Ref": "SecurityGroupWeb"
+            },
+            "ToPort": "1521"
+          },
+          {
+            "FromPort": "5432",
+            "IpProtocol": "tcp",
+            "SourceSecurityGroupId": {
+              "Ref": "SecurityGroupWeb"
+            },
+            "ToPort": "5432"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "SecurityGroupDB"
+          }
+        ],
+        "VpcId": {
+          "Fn::GetAtt": [
+            "VpcBaseStack",
+            "Outputs.Vpc"
+          ]
+        }
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    },
+    "SecurityGroupELB": {
+      "Properties": {
+        "GroupDescription": "Security Group ELB.",
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": "80",
+            "IpProtocol": "tcp",
+            "ToPort": "80"
+          },
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": "443",
+            "IpProtocol": "tcp",
+            "ToPort": "443"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "SecurityGroupELB"
+          }
+        ],
+        "VpcId": {
+          "Fn::GetAtt": [
+            "VpcBaseStack",
+            "Outputs.Vpc"
+          ]
+        }
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    },
+    "SecurityGroupOwner": {
+      "Properties": {
+        "GroupDescription": "Security Group Owner.",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "SecurityGroupOwner"
+          }
+        ],
+        "VpcId": {
+          "Fn::GetAtt": [
+            "VpcBaseStack",
+            "Outputs.Vpc"
+          ]
+        }
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    },
+    "SecurityGroupWeb": {
+      "Properties": {
+        "GroupDescription": "Security Group WebAp.",
+        "SecurityGroupIngress": [
+          {
+            "FromPort": "80",
+            "IpProtocol": "tcp",
+            "SourceSecurityGroupId": {
+              "Ref": "SecurityGroupELB"
+            },
+            "ToPort": "80"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "SecurityGroupWeb"
+          }
+        ],
+        "VpcId": {
+          "Fn::GetAtt": [
+            "VpcBaseStack",
+            "Outputs.Vpc"
+          ]
+        }
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    },
+    "VpcBaseStack": {
+      "Properties": {
+        "Parameters": {
+          "Private1SubnetCidrBlock": {
+            "Ref": "Private1SubnetCidrBlock"
+          },
+          "Private2SubnetCidrBlock": {
+            "Ref": "Private2SubnetCidrBlock"
+          },
+          "ProjectName": {
+            "Ref": "ProjectName"
+          },
+          "Public1SubnetCidrBlock": {
+            "Ref": "Public1SubnetCidrBlock"
+          },
+          "Public2SubnetCidrBlock": {
+            "Ref": "Public2SubnetCidrBlock"
+          },
+          "VpcCidrBlock": {
+            "Ref": "VpcCidrBlock"
+          }
+        },
+        "TemplateURL": {
+          "Fn::Join": [
+            "",
+            [
+              "https://s3-",
+              {
+                "Ref": "AWS::Region"
+              },
+              ".amazonaws.com/",
+              {
+                "Ref": "AWS::Region"
+              },
+              ".",
+              {
+                "Ref": "TemplateVPCBase"
+              },
+              "/vpc/vpc-base.json"
+            ]
+          ]
+        }
+      },
+      "Type": "AWS::CloudFormation::Stack"
+    }
+  }
+}
