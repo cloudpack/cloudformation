@@ -59,7 +59,10 @@
         }
     },
     "Parameters": {
-        "NatGatewayEipAllocationId": {
+        "NatGateway1EipAllocationId": {
+            "Type": "String"
+        },
+        "NatGateway2EipAllocationId": {
             "Type": "String"
         },
         "Private1SubnetCidrBlock": {
@@ -92,10 +95,10 @@
         }
     },
     "Resources": {
-        "NatGateway": {
+        "NatGateway1": {
             "Properties": {
                 "AllocationId": {
-                    "Ref": "NatGatewayEipAllocationId"
+                    "Ref": "NatGateway1EipAllocationId"
                 },
                 "SubnetId": {
                     "Fn::GetAtt": [
@@ -106,11 +109,25 @@
             },
             "Type": "AWS::EC2::NatGateway"
         },
+        "NatGateway2": {
+            "Properties": {
+                "AllocationId": {
+                    "Ref": "NatGateway2EipAllocationId"
+                },
+                "SubnetId": {
+                    "Fn::GetAtt": [
+                        "VpcBaseStack",
+                        "Outputs.Public2Subnet"
+                    ]
+                }
+            },
+            "Type": "AWS::EC2::NatGateway"
+        },
         "Route": {
             "Properties": {
                 "DestinationCidrBlock": "0.0.0.0/0",
                 "NatGatewayId": {
-                    "Ref": "NatGateway"
+                    "Ref": "NatGateway1"
                 },
                 "RouteTableId": {
                     "Fn::GetAtt": [

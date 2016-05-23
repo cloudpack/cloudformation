@@ -11,20 +11,20 @@
         }
     },
     "Outputs": {
-        "LoadBalancerSecurityGroup": {
+        "BastionSecurityGroup": {
             "Value": {
-                "Ref": "LoadBalancerSecurityGroup"
+                "Ref": "BastionSecurityGroup"
             }
         },
-        "WebEc2Role": {
+        "BastionEc2Role": {
             "Value": {
-                "Ref": "WebEc2Role"
+                "Ref": "BastionEc2Role"
             }
         }
     },
     "Parameters": {
         "AnsibleFunctionName": {
-            "Default": "web",
+            "Default": "dummy",
             "Type": "String"
         },
         "AnsibleProjectRepository": {
@@ -41,22 +41,12 @@
         "CommonSecurityGroup": {
             "Type": "String"
         },
-        "DesiredCapacity": {
-            "Default": "2",
-            "Type": "String"
-        },
         "InstanceType": {
             "Default": "t2.nano",
             "Type": "String"
         },
         "KeyName": {
             "Default": "cloudpack",
-            "Type": "String"
-        },
-        "Private1Subnet": {
-            "Type": "String"
-        },
-        "Private2Subnet": {
             "Type": "String"
         },
         "ProjectName": {
@@ -74,27 +64,15 @@
         }
     },
     "Resources": {
-        "Application": {
-            "Type": "AWS::CodeDeploy::Application"
-        },
         "AutoScalingGroup": {
             "Properties": {
                 "Cooldown": "0",
-                "DesiredCapacity": {
-                    "Ref": "DesiredCapacity"
-                },
-                "HealthCheckGracePeriod": 60,
-                "HealthCheckType": "ELB",
+                "DesiredCapacity": "1",
                 "LaunchConfigurationName": {
                     "Ref": "LaunchConfiguration"
                 },
-                "LoadBalancerNames": [
-                    {
-                        "Ref": "LoadBalancer"
-                    }
-                ],
-                "MaxSize": "10",
-                "MinSize": "2",
+                "MaxSize": "1",
+                "MinSize": "1",
                 "Tags": [
                     {
                         "Key": "Name",
@@ -116,10 +94,10 @@
                 ],
                 "VPCZoneIdentifier": [
                     {
-                        "Ref": "Private1Subnet"
+                        "Ref": "Public1Subnet"
                     },
                     {
-                        "Ref": "Private2Subnet"
+                        "Ref": "Public2Subnet"
                     }
                 ]
             },
@@ -127,7 +105,7 @@
             "UpdatePolicy": {
                 "AutoScalingRollingUpdate": {
                     "MaxBatchSize": "1",
-                    "MinInstancesInService": "2"
+                    "MinInstancesInService": "1"
                 }
             }
         },
@@ -137,7 +115,7 @@
                 "Roles": [
                     {
                         "Ref": "CommonEc2Role",
-                        "Ref": "WebEc2Role"
+                        "Ref": "BastionEc2Role"
                     }
                 ]
             },
@@ -165,7 +143,8 @@
                 },
                 "SecurityGroups": [
                     {
-                        "Ref": "CommonSecurityGroup"
+                        "Ref": "CommonSecurityGroup",
+                        "Ref": "BastionSecurityGroup"
                     }
                 ],
                 "UserData": {
@@ -223,39 +202,9 @@
             },
             "Type": "AWS::AutoScaling::LaunchConfiguration"
         },
-        "LoadBalancer": {
+        "BastionSecurityGroup": {
             "Properties": {
-                "CrossZone": "true",
-                "HealthCheck": {
-                    "HealthyThreshold": "2",
-                    "Interval": "5",
-                    "Target": "HTTP:80/healthcheck",
-                    "Timeout": "2",
-                    "UnhealthyThreshold": "2"
-                },
-                "Listeners": [
-                    {
-                        "InstancePort": "80",
-                        "LoadBalancerPort": "80",
-                        "Protocol": "HTTP"
-                    }
-                ],
-                "SecurityGroups": [
-                    {
-                        "Ref": "LoadBalancerSecurityGroup"
-                    },
-                    {
-                        "Ref": "CommonSecurityGroup"
-                    }
-                ],
-                "Subnets": [
-                    {
-                        "Ref": "Public1Subnet"
-                    },
-                    {
-                        "Ref": "Public2Subnet"
-                    }
-                ],
+                "GroupDescription": "Bastion",
                 "Tags": [
                     {
                         "Key": "Name",
@@ -266,31 +215,7 @@
                                     {
                                         "Ref": "ProjectName"
                                     },
-                                    {
-                                        "Ref": "AnsibleFunctionName"
-                                    }
-                                ]
-                            ]
-                        }
-                    }
-                ]
-            },
-            "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
-        },
-        "LoadBalancerSecurityGroup": {
-            "Properties": {
-                "GroupDescription": "LoadBalancer",
-                "Tags": [
-                    {
-                        "Key": "Name",
-                        "Value": {
-                            "Fn::Join": [
-                                "-",
-                                [
-                                    {
-                                        "Ref": "ProjectName"
-                                    },
-                                    "load_balancer"
+                                    "bastion"
                                 ]
                             ]
                         }
@@ -300,7 +225,7 @@
             },
             "Type": "AWS::EC2::SecurityGroup"
         },
-        "WebEc2Role": {
+        "BastionEc2Role": {
             "Properties": {
                 "AssumeRolePolicyDocument": {
                     "Statement": [

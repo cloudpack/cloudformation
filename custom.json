@@ -1,0 +1,75 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Parameters": {
+        "LoadBalancerSecurityGroup": {
+            "Type": "String"
+        },
+        "BastionSecurityGroup": {
+            "Type": "String"
+        },
+        "WebEc2Role": {
+            "Type": "String"
+        },
+        "BastionEc2Role": {
+            "Type": "String"
+        }
+    },
+    "Resources": {
+        "LoadBalancerSecurityGroupIngress": {
+            "Type": "AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": { "Ref": "LoadBalancerSecurityGroup" },
+                "IpProtocol": "tcp",
+                "FromPort": "80",
+                "ToPort": "80",
+                "CidrIp": "192.0.2.0/24"
+            }
+        },
+        "BastionSecurityGroupIngress": {
+            "Type": "AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": { "Ref": "BastionSecurityGroup" },
+                "IpProtocol": "tcp",
+                "FromPort": "22",
+                "ToPort": "22",
+                "CidrIp": "192.0.2.0/24"
+            }
+        },
+        "WebEc2Policy": {
+            "Type": "AWS::IAM::Policy",
+            "Properties": {
+                "PolicyName": "web_ec2",
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": "*",
+                            "Resource": "*"
+                        }
+
+                    ]
+                },
+                "Roles": [ { "Ref": "WebEc2Role" } ]
+            }
+        }, 
+        "BastionEc2Policy": {
+            "Type": "AWS::IAM::Policy",
+            "Properties": {
+                "PolicyName": "bastion_ec2",
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": "*",
+                            "Resource": "*"
+                        }
+
+                    ]
+                },
+                "Roles": [ { "Ref": "BastionEc2Role" } ]
+            }
+        }
+    }
+}
