@@ -21,9 +21,14 @@
                 "Ref": "Private2Subnet"
             }
         },
-        "PrivateRouteTable": {
+        "Private1RouteTable": {
             "Value": {
-                "Ref": "PrivateRouteTable"
+                "Ref": "Private1RouteTable"
+            }
+        },
+        "Private2RouteTable": {
+            "Value": {
+                "Ref": "Private2RouteTable"
             }
         },
         "Public1Subnet": {
@@ -206,7 +211,7 @@
         "Private1SubnetRouteTableAssociation": {
             "Properties": {
                 "RouteTableId": {
-                    "Ref": "PrivateRouteTable"
+                    "Ref": "Private1RouteTable"
                 },
                 "SubnetId": {
                     "Ref": "Private1Subnet"
@@ -256,7 +261,7 @@
         "Private2SubnetRouteTableAssociation": {
             "Properties": {
                 "RouteTableId": {
-                    "Ref": "PrivateRouteTable"
+                    "Ref": "Private2RouteTable"
                 },
                 "SubnetId": {
                     "Ref": "Private2Subnet"
@@ -264,7 +269,7 @@
             },
             "Type": "AWS::EC2::SubnetRouteTableAssociation"
         },
-        "PrivateRouteTable": {
+        "Private1RouteTable": {
             "Properties": {
                 "Tags": [
                     {
@@ -276,7 +281,33 @@
                                     {
                                         "Ref": "ProjectName"
                                     },
-                                    "private"
+                                    "private",
+                                    "1"
+                                ]
+                            ]
+                        }
+                    }
+                ],
+                "VpcId": {
+                    "Ref": "Vpc"
+                }
+            },
+            "Type": "AWS::EC2::RouteTable"
+        },
+        "Private2RouteTable": {
+            "Properties": {
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": {
+                            "Fn::Join": [
+                                "-",
+                                [
+                                    {
+                                        "Ref": "ProjectName"
+                                    },
+                                    "private",
+                                    "2"
                                 ]
                             ]
                         }
@@ -449,7 +480,10 @@
                         "Ref": "PublicRouteTable"
                     },
                     {
-                        "Ref": "PrivateRouteTable"
+                        "Ref": "Private1RouteTable"
+                    },
+                    {
+                        "Ref": "Private2RouteTable"
                     }
                 ],
                 "ServiceName": {
